@@ -1,0 +1,34 @@
+groups:
+  - name: clusterpulse.rules
+    rules:
+      # Node is unreachable / node_exporter is down.
+      # This is the reliable demo alert: stop a node container and it fires.
+      - alert: NodeDown
+        expr: up{job="node"} == 0
+        for: 15s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.instance }} is down"
+          runbook: cordon-node.sh
+
+      # Sustained high CPU (busy % over 85 for 30s).
+      # Best demonstrated on a real Linux host / KVM node via stress-cpu.sh.
+      - alert: HighCPU
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 85
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.instance }}"
+          runbook: restart-service.sh
+
+      # Root filesystem usage over 85%.
+      - alert: DiskPressure
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 85
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk pressure on {{ $labels.instance }}"
+          runbook: disk-cleanup.sh

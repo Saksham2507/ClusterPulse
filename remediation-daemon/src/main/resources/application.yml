@@ -1,0 +1,34 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: clusterpulse-remediation-daemon
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
+# Expose the daemon's own metrics for Prometheus to scrape.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+
+clusterpulse:
+  # Where the runbook scripts live (mounted read-only in Docker).
+  runbooks-dir: ${RUNBOOKS_DIR:./runbooks}
+  cooldown-seconds: 60
+  runbook-timeout-seconds: 30
+  # Instance/node args must match this or they are rejected before execution.
+  arg-pattern: "[A-Za-z0-9_.:-]+"
+  # alertname -> runbook script. This is also the execution whitelist.
+  mappings:
+    NodeDown: cordon-node.sh
+    HighCPU: restart-service.sh
+    DiskPressure: disk-cleanup.sh
+    ServiceDown: restart-service.sh
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{20} - %msg%n"

@@ -1,0 +1,20 @@
+# Java / Maven
+remediation-daemon/target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# VM / infra artifacts
+*.qcow2
+*.iso
+*.img
+
+# Local state
+/tmp/clusterpulse/
+clusterpulse-ballast.bin
+
+# OS
+.DS_Store

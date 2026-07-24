@@ -1,0 +1,69 @@
+name: clusterpulse
+
+services:
+  # ---- three "cluster nodes" running node_exporter ----
+  node1:
+    image: prom/node-exporter:v1.8.2
+    container_name: node1
+    networks: [clusterpulse]
+    restart: unless-stopped
+
+  node2:
+    image: prom/node-exporter:v1.8.2
+    container_name: node2
+    networks: [clusterpulse]
+    restart: unless-stopped
+
+  node3:
+    image: prom/node-exporter:v1.8.2
+    container_name: node3
+    networks: [clusterpulse]
+    restart: unless-stopped
+
+  # ---- monitoring stack ----
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+    ports: ["9090:9090"]
+    networks: [clusterpulse]
+    depends_on: [node1, node2, node3, alertmanager]
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports: ["9093:9093"]
+    networks: [clusterpulse]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+    networks: [clusterpulse]
+    depends_on: [prometheus]
+
+  # ---- the remediation daemon (Spring Boot) ----
+  remediation-daemon:
+    build: ./remediation-daemon
+    container_name: remediation-daemon
+    environment:
+      - RUNBOOKS_DIR=/runbooks
+    volumes:
+      - ./runbooks:/runbooks:ro
+    ports: ["8088:8088"]
+    networks: [clusterpulse]
+
+networks:
+  clusterpulse:
+    driver: bridge

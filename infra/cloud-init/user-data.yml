@@ -1,0 +1,18 @@
+#cloud-config
+# Installs and starts Prometheus node_exporter (listens on :9100) on first boot.
+package_update: true
+packages:
+  - prometheus-node-exporter
+
+runcmd:
+  - systemctl enable --now prometheus-node-exporter
+
+# Optional: a default login for debugging the VM console.
+# Remove or change before any non-lab use.
+users:
+  - name: sre
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    # password: "sre" (hashed). Regenerate with: openssl passwd -6 sre
+    passwd: "$6$rounds=4096$saltsalt$3xampleHashReplaceMe"
+    shell: /bin/bash
